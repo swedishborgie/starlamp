@@ -1,10 +1,17 @@
 package main
 
+//go:generate pkger
+
 import (
 	"github.com/labstack/echo"
+	"github.com/markbates/pkger"
 	"github.com/swedishborgie/starlamp/lightctl"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -16,17 +23,6 @@ const (
 	StateAsleep  SleepState = 2
 )
 
-func (s SleepState) String() string {
-	switch s {
-	case StateAwake:
-		return "awake"
-	case StateAsleep:
-		return "asleep"
-	default:
-		return "unknown"
-	}
-}
-
 var (
 	awakeTime       = "07:00:00"
 	asleepTime      = "18:00:00"
@@ -34,8 +30,7 @@ var (
 	todayAsleepTime time.Time
 	awakeColor      = lightctl.LightStateGreen
 	asleepColor     = lightctl.LightStateBlue
-
-	currentState SleepState = StateUnknown
+	currentState    = StateUnknown
 )
 
 func main() {
@@ -44,7 +39,15 @@ func main() {
 
 	server := echo.New()
 	server.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "hello world")
+		idx, err := pkger.Open("/html/index.html")
+		if err != nil {
+			return err
+		}
+		body, err := ioutil.ReadAll(idx)
+		if err != nil {
+			return err
+		}
+		return c.HTML(http.StatusOK, string(body))
 	})
 	server.GET("/status", getStatus)
 	server.POST("/awake/:time", setAwakeTime)
@@ -54,6 +57,8 @@ func main() {
 	server.GET("/color", getColor)
 	server.POST("/color/:color", setColor)
 	server.POST("/reset", resetColor)
+	server.GET("/*", getStaticAsset)
+	pkger.Include("/html")
 	log.Fatalf("failed to start server: %s", server.Start(":8080"))
 }
 
@@ -74,6 +79,31 @@ func startTicker() {
 	}()
 }
 
+func getStaticAsset(c echo.Context) error {
+	filePath := url.PathEscape(c.Param("*"))
+	file, err := pkger.Open("/html/" + filePath)
+	if err == os.ErrNotExist {
+		return c.NoContent(http.StatusNotFound)
+	}
+	return c.Stream(http.StatusOK, getMimeType(filePath), file)
+}
+
+func getMimeType(filePath string) string {
+	filePath = strings.ToLower(filePath)
+	if strings.HasSuffix(filePath, ".png") {
+		return "image/png"
+	} else if strings.HasSuffix(filePath, ".jpg") {
+		return "image/png"
+	} else if strings.HasSuffix(filePath, ".htm") || strings.HasSuffix(filePath, ".html") {
+		return "text/html"
+	} else if strings.HasSuffix(filePath, ".css") {
+		return "text/css"
+	} else if strings.HasSuffix(filePath, ".js") {
+		return "application/javascript"
+	}
+	return "application/octet-stream"
+}
+
 func reset() {
 	lightctl.Reset()
 	currentState = StateUnknown
@@ -85,10 +115,10 @@ func reset() {
 
 func getStatus(c echo.Context) error {
 	status := &struct {
-		AwakeTime time.Time
-		AsleepTime time.Time
-		AwakeColor lightctl.LightState
-		AsleepColor lightctl.LightState
+		AwakeTime    time.Time
+		AsleepTime   time.Time
+		AwakeColor   lightctl.LightState
+		AsleepColor  lightctl.LightState
 		CurrentState SleepState
 		CurrentColor lightctl.LightState
 	}{
@@ -186,4 +216,15 @@ func setColor(c echo.Context) error {
 	state := lightctl.ParseLightState(c.Param("color"))
 	lightctl.SetState(state)
 	return c.NoContent(http.StatusOK)
+}
+
+func (s SleepState) String() string {
+	switch s {
+	case StateAwake:
+		return "awake"
+	case StateAsleep:
+		return "asleep"
+	default:
+		return "unknown"
+	}
 }
