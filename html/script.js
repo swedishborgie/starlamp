@@ -45,10 +45,11 @@ class StarLamp {
     buildState() {
         let state = new LampState();
         state.awakeTime = document.getElementById("wake_time").value;
-        state.awakeColor = document.getElementById("wake_color").value;
+        state.awakeColor = parseInt(document.getElementById("wake_color").value);
         state.asleepTime = document.getElementById("sleep_time").value;
-        state.asleepColor = document.getElementById("sleep_color").value;
-        state.currentColor = document.getElementById("lamp_color").value;
+        state.asleepColor = parseInt(document.getElementById("sleep_color").value);
+        state.currentColor = parseInt(document.getElementById("lamp_color").value);
+        return state;
     }
 
     fillColorSelects() {
@@ -80,6 +81,7 @@ class StarLamp {
 
 class LampState {
     constructor(obj) {
+        obj = obj || {};
         this.awakeTime = obj.awakeTime || "00:00:00";
         this.awakeColor = obj.awakeColor || 0;
         this.asleepTime = obj.asleepTime || "00:00:00";
