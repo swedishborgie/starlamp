@@ -45,7 +45,7 @@ func main() {
 	server.POST("/reset", resetColor)
 	server.GET("/*", getStaticAsset)
 	pkger.Include("/html")
-	log.Fatalf("failed to start server: %s", server.Start(":8080"))
+	log.Fatalf("failed to start server: %s", server.Start(":80"))
 }
 
 func startTicker() {

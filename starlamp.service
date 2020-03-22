@@ -4,6 +4,8 @@ Description=Star Lamp Service
 [Service]
 Type=simple
 ExecStart=/usr/bin/starlamp
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+User=pi
 
 [Install]
 WantedBy=multi-user.target
