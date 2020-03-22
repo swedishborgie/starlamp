@@ -1,11 +1,32 @@
 class StarLamp {
     constructor() {
-        this.baseURL = "http://192.168.1.171:8080"
+        this.baseURL = "http://192.168.1.171:8080";
     }
 
-    async getStatus() {
-        let response = await fetch(this.baseURL + "/status")
-        return await response.json()
+    async getState() {
+        let response = await fetch(this.baseURL + "/status");
+        let status = new LampState(await response.json());
+        this.fillStatus(status);
+        return status
+    }
+
+    async setState(state) {
+        state = state || this.buildState();
+        await fetch(this.baseURL + "/status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(state),
+        });
+    }
+
+    async reset() {
+        await fetch(this.baseURL + "/reset", {method: "POST"})
+    }
+
+    async nextColor() {
+        let state = await this.getState();
+        state.currentColor = (state.currentColor + 1) % 9;
+        await this.setState(state)
     }
 
     fillStatus(status) {
@@ -15,6 +36,15 @@ class StarLamp {
         document.getElementById("sleep_color").value = status.asleepColor;
         document.getElementById("current_status").value = status.currentState;
         document.getElementById("lamp_color").value = status.currentColor;
+    }
+
+    buildState() {
+        let state = new LampState();
+        state.awakeTime = document.getElementById("wake_time").value;
+        state.awakeColor = document.getElementById("wake_color").value;
+        state.asleepTime = document.getElementById("sleep_time").value;
+        state.asleepColor = document.getElementById("sleep_color").value;
+        state.currentColor = document.getElementById("lamp_color").value;
     }
 
     fillColorSelects() {
@@ -44,6 +74,17 @@ class StarLamp {
     }
 }
 
+class LampState {
+    constructor(obj) {
+        this.awakeTime = obj.awakeTime || "00:00:00";
+        this.awakeColor = obj.awakeColor || 0;
+        this.asleepTime = obj.asleepTime || "00:00:00";
+        this.asleepColor = obj.asleepColor || 0;
+        this.currentState = obj.currentState || 0;
+        this.currentColor = obj.currentColor || 0;
+    }
+}
+
 const LightState = {
     "none": {id: 0, name: "All Off"},
     "blue": {id: 1, name: "Blue"},
@@ -66,7 +107,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     let lamp = new StarLamp();
     lamp.fillColorSelects();
     lamp.fillStateSelects();
-    let status = await lamp.getStatus();
-    lamp.fillStatus(status);
-    console.log(status);
+    await lamp.getState();
+
+    document.getElementById("save").addEventListener("click", () => lamp.setState());
+    document.getElementById("next_color").addEventListener("click", () => lamp.nextColor());
+    document.getElementById("reset").addEventListener("click", () => lamp.reset());
 });

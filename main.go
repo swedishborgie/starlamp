@@ -115,7 +115,7 @@ func setStatus(c echo.Context) error {
 	if state.CurrentColor != lightctl.GetState() {
 		lightctl.SetState(state.CurrentColor)
 	}
-	return c.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, state)
 }
 
 func resetColor(c echo.Context) error {
