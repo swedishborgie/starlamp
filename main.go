@@ -16,23 +16,12 @@ import (
 	"time"
 )
 
-type SleepState int
-
-const (
-	StateUnknown SleepState = 0
-	StateAwake   SleepState = 1
-	StateAsleep  SleepState = 2
-)
-
-var (
-	awakeTime       = "07:00:00"
-	asleepTime      = "18:00:00"
-	todayAwakeTime  time.Time
-	todayAsleepTime time.Time
-	awakeColor      = lightctl.LightStateGreen
-	asleepColor     = lightctl.LightStateBlue
-	currentState    = StateUnknown
-)
+var state = State{
+	AwakeTime:   "07:00:00",
+	AsleepTime:  "18:00:00",
+	AwakeColor:  lightctl.LightStateGreen,
+	AsleepColor: lightctl.LightStateBlue,
+}
 
 func main() {
 	reset()
@@ -52,12 +41,7 @@ func main() {
 		return c.HTML(http.StatusOK, string(body))
 	})
 	server.GET("/status", getStatus)
-	server.POST("/awake/:time", setAwakeTime)
-	server.GET("/awake", getAwakeTime)
-	server.POST("/asleep/:time", setAsleepTime)
-	server.GET("/asleep", getAsleepTime)
-	server.GET("/color", getColor)
-	server.POST("/color/:color", setColor)
+	server.POST("/status", setStatus)
 	server.POST("/reset", resetColor)
 	server.GET("/*", getStaticAsset)
 	pkger.Include("/html")
@@ -71,8 +55,10 @@ func startTicker() {
 			select {
 			case now := <-ticker.C:
 				// If we're on a new day, we need to recalculate times.
-				if now.Day() != todayAwakeTime.Day() {
-					recalculate()
+				if now.Day() != state.NextAwakeTime.Day() {
+					if err := recalculate(); err != nil {
+						log.Printf("problem recalculating times: %s", err)
+					}
 				} else {
 					recalculateState()
 				}
@@ -108,7 +94,7 @@ func getMimeType(filePath string) string {
 
 func reset() {
 	lightctl.Reset()
-	currentState = StateUnknown
+	state.CurrentState = StateUnknown
 	// Figure out sleep states
 	if err := recalculate(); err != nil {
 		log.Fatalf("problem calculating times: %s", err)
@@ -116,58 +102,21 @@ func reset() {
 }
 
 func getStatus(c echo.Context) error {
-	status := &struct {
-		AwakeTime      string
-		AsleepTime     string
-		NextAwakeTime  time.Time
-		NextAsleepTime time.Time
-		AwakeColor     lightctl.LightState
-		AsleepColor    lightctl.LightState
-		CurrentState   SleepState
-		CurrentColor   lightctl.LightState
-	}{
-		awakeTime,
-		asleepTime,
-		todayAwakeTime,
-		todayAsleepTime,
-		awakeColor,
-		asleepColor,
-		currentState,
-		lightctl.GetState(),
+	return c.JSON(http.StatusOK, state)
+}
+
+func setStatus(c echo.Context) error {
+	if err := c.Bind(&state); err != nil {
+		return err
 	}
-	return c.JSON(http.StatusOK, status)
+	if err := recalculate(); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusOK)
 }
 
 func resetColor(c echo.Context) error {
 	reset()
-	return c.NoContent(http.StatusOK)
-}
-
-func getAsleepTime(c echo.Context) error {
-	return c.JSON(http.StatusOK, asleepTime)
-}
-
-func getAwakeTime(c echo.Context) error {
-	return c.JSON(http.StatusOK, awakeTime)
-}
-
-func setAwakeTime(c echo.Context) error {
-	tmp := awakeTime
-	awakeTime = c.Param("time")
-	if err := recalculate(); err != nil {
-		awakeTime = tmp
-		return c.JSON(http.StatusBadRequest, err)
-	}
-	return c.NoContent(http.StatusOK)
-}
-
-func setAsleepTime(c echo.Context) error {
-	tmp := asleepTime
-	asleepTime = c.Param("time")
-	if err := recalculate(); err != nil {
-		asleepTime = tmp
-		return c.JSON(http.StatusBadRequest, err)
-	}
 	return c.NoContent(http.StatusOK)
 }
 
@@ -181,56 +130,35 @@ func recalculate() error {
 
 func recalculateState() {
 	now := time.Now()
-	oldState := currentState
-	if now.Before(todayAwakeTime) || now.After(todayAsleepTime) {
-		currentState = StateAsleep
+	oldState := state.CurrentState
+	if now.Before(state.NextAwakeTime) || now.After(state.NextAsleepTime) {
+		state.CurrentState = StateAsleep
 	} else {
-		currentState = StateAwake
+		state.CurrentState = StateAwake
 	}
 
 	//If the state changed, changed the color
-	if oldState != currentState {
-		if currentState == StateAwake {
-			lightctl.SetState(awakeColor)
+	if oldState != state.CurrentState {
+		if state.CurrentState == StateAwake {
+			lightctl.SetState(state.AwakeColor)
 		} else {
-			lightctl.SetState(asleepColor)
+			lightctl.SetState(state.AsleepColor)
 		}
 	}
 }
 
 func recalculateTimes() error {
-	awake, err := time.Parse("15:04:05", awakeTime)
+	awake, err := time.Parse("15:04:05", state.AwakeTime)
 	if err != nil {
 		return err
 	}
-	asleep, err := time.Parse("15:04:05", asleepTime)
+	asleep, err := time.Parse("15:04:05", state.AsleepTime)
 	if err != nil {
 		return err
 	}
 	now := time.Now()
-	todayAwakeTime = time.Date(now.Year(), now.Month(), now.Day(), awake.Hour(), awake.Minute(), awake.Second(), 0, time.Local)
-	todayAsleepTime = time.Date(now.Year(), now.Month(), now.Day(), asleep.Hour(), asleep.Minute(), asleep.Second(), 0, time.Local)
+	state.NextAwakeTime = time.Date(now.Year(), now.Month(), now.Day(), awake.Hour(), awake.Minute(), awake.Second(), 0, time.Local)
+	state.NextAsleepTime = time.Date(now.Year(), now.Month(), now.Day(), asleep.Hour(), asleep.Minute(), asleep.Second(), 0, time.Local)
 
 	return nil
-}
-
-func getColor(c echo.Context) error {
-	return c.JSON(http.StatusOK, lightctl.GetState())
-}
-
-func setColor(c echo.Context) error {
-	state := lightctl.ParseLightState(c.Param("color"))
-	lightctl.SetState(state)
-	return c.NoContent(http.StatusOK)
-}
-
-func (s SleepState) String() string {
-	switch s {
-	case StateAwake:
-		return "awake"
-	case StateAsleep:
-		return "asleep"
-	default:
-		return "unknown"
-	}
 }

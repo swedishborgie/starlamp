@@ -9,12 +9,12 @@ class StarLamp {
     }
 
     fillStatus(status) {
-        document.getElementById("wake_time");
-        document.getElementById("wake_color").value = status.AwakeColor;
-        document.getElementById("sleep_time");
-        document.getElementById("sleep_color").value = status.AsleepColor;
-        document.getElementById("current_status").value = status.CurrentState;
-        document.getElementById("lamp_color").value = status.CurrentColor;
+        document.getElementById("wake_time").value = status.awakeTime;
+        document.getElementById("wake_color").value = status.awakeColor;
+        document.getElementById("sleep_time").value = status.asleepTime;
+        document.getElementById("sleep_color").value = status.asleepColor;
+        document.getElementById("current_status").value = status.currentState;
+        document.getElementById("lamp_color").value = status.currentColor;
     }
 
     fillColorSelects() {
