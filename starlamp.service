@@ -1,0 +1,9 @@
+[Unit]
+Description=Star Lamp Service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/starlamp
+
+[Install]
+WantedBy=multi-user.target
