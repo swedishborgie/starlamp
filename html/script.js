@@ -12,15 +12,19 @@ class StarLamp {
 
     async setState(state) {
         state = state || this.buildState();
-        await fetch(this.baseURL + "/status", {
+        let response = await fetch(this.baseURL + "/status", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(state),
         });
+        let status = new LampState(await response.json());
+        this.fillStatus(status);
+        return status;
     }
 
     async reset() {
         await fetch(this.baseURL + "/reset", {method: "POST"})
+        await this.getState()
     }
 
     async nextColor() {

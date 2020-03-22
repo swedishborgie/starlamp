@@ -99,6 +99,7 @@ func reset() {
 	if err := recalculate(); err != nil {
 		log.Fatalf("problem calculating times: %s", err)
 	}
+	state.CurrentColor = lightctl.GetState()
 }
 
 func getStatus(c echo.Context) error {
@@ -109,11 +110,13 @@ func setStatus(c echo.Context) error {
 	if err := c.Bind(&state); err != nil {
 		return err
 	}
+	color := state.CurrentColor
 	if err := recalculate(); err != nil {
 		return err
 	}
-	if state.CurrentColor != lightctl.GetState() {
-		lightctl.SetState(state.CurrentColor)
+	if color != lightctl.GetState() {
+		lightctl.SetState(color)
+		state.CurrentColor = color
 	}
 	return c.JSON(http.StatusOK, state)
 }
