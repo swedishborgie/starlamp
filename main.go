@@ -112,6 +112,9 @@ func setStatus(c echo.Context) error {
 	if err := recalculate(); err != nil {
 		return err
 	}
+	if state.CurrentColor != lightctl.GetState() {
+		lightctl.SetState(state.CurrentColor)
+	}
 	return c.NoContent(http.StatusOK)
 }
 
