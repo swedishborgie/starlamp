@@ -3,14 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <title>Star Lamp</title>
-    <script type="application/javascript">
-
-    </script>
-    <style type="text/css">
-
-    </style>
+    <script type="application/javascript" src="script.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-
+    <div class="lamp_status">
+        <div class="lamp_attr">
+            <label for="wake_time">Wake Time</label>
+            <input id="wake_time" type="time" />
+        </div>
+        <div class="lamp_attr">
+            <label for="wake_color">Wake Color</label>
+            <select class="lamp_color" id="wake_color"></select>
+        </div>
+        <div class="lamp_attr">
+            <label for="sleep_time">Sleep Time</label>
+            <input id="sleep_time" type="time" />
+        </div>
+        <div class="lamp_attr">
+            <label for="sleep_color">Sleep Color</label>
+            <select class="lamp_color" id="sleep_color"></select>
+        </div>
+        <div class="lamp_attr">
+            <label for="current_status">Current Status</label>
+            <select class="awake_state" id="current_status"></select>
+        </div>
+        <div class="lamp_attr">
+            <label for="lamp_color">Current Color</label>
+            <select class="lamp_color" id="lamp_color"></select>
+        </div>
+        <div class="lamp_buttons">
+            <button id="next_color">Next Color</button>
+        </div>
+    </div>
 </body>
 </html>

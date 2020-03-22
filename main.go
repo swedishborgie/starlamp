@@ -117,13 +117,17 @@ func reset() {
 
 func getStatus(c echo.Context) error {
 	status := &struct {
-		AwakeTime    time.Time
-		AsleepTime   time.Time
-		AwakeColor   lightctl.LightState
-		AsleepColor  lightctl.LightState
-		CurrentState SleepState
-		CurrentColor lightctl.LightState
+		AwakeTime      string
+		AsleepTime     string
+		NextAwakeTime  time.Time
+		NextAsleepTime time.Time
+		AwakeColor     lightctl.LightState
+		AsleepColor    lightctl.LightState
+		CurrentState   SleepState
+		CurrentColor   lightctl.LightState
 	}{
+		awakeTime,
+		asleepTime,
 		todayAwakeTime,
 		todayAsleepTime,
 		awakeColor,
