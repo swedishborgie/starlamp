@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/markbates/pkger"
 	"github.com/swedishborgie/starlamp/lightctl"
 	"io/ioutil"
@@ -38,6 +39,7 @@ func main() {
 	startTicker()
 
 	server := echo.New()
+	server.Use(middleware.CORS())
 	server.GET("/", func(c echo.Context) error {
 		idx, err := pkger.Open("/html/index.html")
 		if err != nil {
